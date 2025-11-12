@@ -1,10 +1,11 @@
 plugins {
-    id("org.springframework.boot") version "3.2.2"
-    id("io.spring.dependency-management") version "1.1.4"
+    id("org.springframework.boot") version "3.5.7"
     kotlin("jvm") version "2.2.21"
     kotlin("plugin.spring") version "1.9.25"
     kotlin("plugin.jpa") version "1.9.25"  // ← For JPA entities
 }
+
+apply(plugin = "io.spring.dependency-management")
 
 group = "com.example"
 version = "1.0-SNAPSHOT"

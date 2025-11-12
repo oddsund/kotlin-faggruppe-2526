@@ -17,21 +17,36 @@ class OrdreService(
     }
     
     fun validerOrdre(request: OrdreRequest): ValideringsResultat {
-        // TODO DEL 2:
-        // 1. Sjekk at total er over minimum (allerede implementert under)
-        // 2. Hent kunde fra kundeRepository (håndter Optional!)
-        // 3. Sjekk at kunde eksisterer
-        // 4. Sjekk at kunde er aktiv
-        // 5. For hver vare: sjekk at det er nok på lager
-        
-        // Implementert: Total-sjekk
+        // 1. Sjekk at total er over minimum
         val total = request.totalBeløp()
         if (total < MINIMUM_ORDRE_TOTAL) {
             return ValideringsResultat.Ugyldig.TotalForLav(total, MINIMUM_ORDRE_TOTAL)
         }
-        
-        // TODO: Implementer resten her
-        
+
+        // 2. Hent kunde fra kundeRepository (håndter Optional!)
+        val kundeOptional = kundeRepository.findById(request.kundeId)
+
+        // 3. Sjekk at kunde eksisterer
+        if (kundeOptional.isEmpty) {
+            return ValideringsResultat.Ugyldig.KundeIkkeFunnet(request.kundeId)
+        }
+
+        val kunde = kundeOptional.get()
+
+        // 4. Sjekk at kunde er aktiv
+        if (!kunde.erAktiv) {
+            return ValideringsResultat.Ugyldig.KundeInaktiv(request.kundeId)
+        }
+
+        // 5. For hver vare: sjekk at det er nok på lager
+        for (vare in request.varer) {
+            val lagerStatus = produktLagerRepository.findByProduktId(vare.produktId)
+
+            if (lagerStatus == null || lagerStatus.antallPåLager <= 0) {
+                return ValideringsResultat.Ugyldig.UtAvLager(vare.produktId)
+            }
+        }
+
         return ValideringsResultat.Gyldig
     }
 }

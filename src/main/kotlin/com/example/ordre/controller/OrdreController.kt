@@ -13,11 +13,47 @@ class OrdreController(
     
     @PostMapping("/valider")
     fun validerOrdre(@RequestBody request: OrdreRequest): ResponseEntity<ValideringsRespons> {
-        // TODO DEL 1:
         // 1. Kall ordreService.validerOrdre(request)
+        val resultat = ordreService.validerOrdre(request)
+
         // 2. Map ValideringsResultat til HTTP status og ValideringsRespons
         // 3. Bruk when expression for exhaustive sealed class handling
-        
-        throw NotImplementedError("Implementeres i Del 1")
+        return when (resultat) {
+            is ValideringsResultat.Gyldig -> {
+                ResponseEntity.ok(ValideringsRespons(gyldig = true))
+            }
+            is ValideringsResultat.Ugyldig.TotalForLav -> {
+                ResponseEntity.badRequest().body(
+                    ValideringsRespons(
+                        gyldig = false,
+                        feilmelding = "Ordre total ${resultat.total} kr er under minimum ${resultat.minimum} kr"
+                    )
+                )
+            }
+            is ValideringsResultat.Ugyldig.KundeIkkeFunnet -> {
+                ResponseEntity.badRequest().body(
+                    ValideringsRespons(
+                        gyldig = false,
+                        feilmelding = "Kunde med ID ${resultat.kundeId} ble ikke funnet"
+                    )
+                )
+            }
+            is ValideringsResultat.Ugyldig.KundeInaktiv -> {
+                ResponseEntity.badRequest().body(
+                    ValideringsRespons(
+                        gyldig = false,
+                        feilmelding = "Kunde med ID ${resultat.kundeId} er inaktiv"
+                    )
+                )
+            }
+            is ValideringsResultat.Ugyldig.UtAvLager -> {
+                ResponseEntity.badRequest().body(
+                    ValideringsRespons(
+                        gyldig = false,
+                        feilmelding = "Produkt ${resultat.produktId} er utsolgt"
+                    )
+                )
+            }
+        }
     }
 }

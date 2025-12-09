@@ -7,7 +7,7 @@ plugins {
 
 apply(plugin = "io.spring.dependency-management")
 
-group = "com.example"
+group = "com.example.ordre.ws2"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -29,7 +29,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
     // Database
-    runtimeOnly("com.h2database:h2")  // In-memory database for testing
+    runtimeOnly("com.h2database:h2")
+    runtimeOnly("org.postgresql:postgresql:42.7.1")
+    implementation("org.flywaydb:flyway-core")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -39,6 +42,9 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("io.kotest:kotest-assertions-core:6.0.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    testImplementation("org.testcontainers:postgresql:1.19.3")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
 }
 
 tasks.test {

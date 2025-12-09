@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: ordre-api
+
+  # H2 in-memory database
+  datasource:
+    url: jdbc:h2:mem:ordre_db
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # JPA/Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # Creates schema on startup, drops on shutdown
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # H2 Console (useful for debugging)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+logging:
+  level:
+    com.example.ordre: DEBUG
+    org.hibernate.SQL: DEBUG

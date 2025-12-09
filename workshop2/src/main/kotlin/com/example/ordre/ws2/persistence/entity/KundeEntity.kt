@@ -1,4 +1,4 @@
-package com.example.ordre.persistence.entity
+package com.example.ordre.ws2.persistence.entity
 
 import jakarta.persistence.*
 
@@ -6,7 +6,7 @@ import jakarta.persistence.*
 @Table(name = "kunde")
 class KundeEntity(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue
     var id: Long? = null,
     
     @Column(nullable = false)

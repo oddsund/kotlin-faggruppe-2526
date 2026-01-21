@@ -1,34 +1,32 @@
+package løsningsforslag
+
+import ch.tutteli.atrium.api.fluent.en_GB.feature
+import ch.tutteli.atrium.api.fluent.en_GB.notToBeEmpty
+import ch.tutteli.atrium.api.fluent.en_GB.notToEqualNull
+import ch.tutteli.atrium.api.fluent.en_GB.toContain
+import ch.tutteli.atrium.api.fluent.en_GB.toEqual
+import ch.tutteli.atrium.api.fluent.en_GB.toHaveSize
+import ch.tutteli.atrium.api.verbs.expect
 import domain.Order
 import domain.OrderItem
 import domain.Product
 import org.junit.jupiter.api.Test
 
-/*
- * Atrium - Assertion-bibliotek for Kotlin
- * Dokumentasjon: https://github.com/robstoll/atrium#examples
- *
- * Viktige assertions du vil trenge:
- * - expect(verdi).toEqual(forventet): Sammenligner verdier for likhet
- * - expect(verdi).toHaveSize(antall): Sjekker størrelsen på en collection
- * - expect(verdi).notToBeEmpty(): Sjekker at en collection ikke er tom
- * - expect(verdi).notToEqualNull(): Sjekker at en verdi ikke er null (kan knyttes til andre assertions)
- * - expect(verdi).toContain(element1, element2, ...): Sjekker at en collection inneholder elementer
- * - expect(objekt) { feature { f(it::property) }.assertion }: Soft assertions på properties
- */
+// Dokumentasjon: https://github.com/robstoll/atrium#examples
 class OrderTestAtrium {
-
+    
     private val laptop = Product(
         id = "LAPTOP-1",
         name = "MacBook Pro",
         price = 20000
     )
-
+    
     private val mouse = Product(
         id = "MOUSE-1",
         name = "Magic Mouse",
         price = 800
     )
-
+    
     @Test
     fun `skal beregne subtotal korrekt`() {
         val order = Order(
@@ -40,10 +38,10 @@ class OrderTestAtrium {
             ),
             customerEmail = "test@test.no"
         )
-
-        // TODO: Sjekk at subtotal har riktig verdi
+        
+        expect(order.subtotal).toEqual(21600)
     }
-
+    
     @Test
     fun `skal beregne total med avgift`() {
         val order = Order(
@@ -55,10 +53,11 @@ class OrderTestAtrium {
             taxRate = 0.25,
             customerEmail = "test@test.no"
         )
-
-        // TODO: Sjekk at total og tax har riktige verdier
+        
+        expect(order.total).toEqual(25000)
+        expect(order.tax).toEqual(5000)
     }
-
+    
     @Test
     fun `skal ha flere elementer`() {
         val order = Order(
@@ -70,10 +69,10 @@ class OrderTestAtrium {
             ),
             customerEmail = "test@test.no"
         )
-
-        // TODO: Sjekk antall elementer og at listen ikke er tom
+        
+        expect(order.items).notToBeEmpty().toHaveSize(2)
     }
-
+    
     @Test
     fun `skal ikke ha rabattkode som standard`() {
         val order = Order(
@@ -82,10 +81,11 @@ class OrderTestAtrium {
             items = listOf(OrderItem(laptop, quantity = 1)),
             customerEmail = "test@test.no"
         )
-
-        // TODO: Sjekk at discountCode er null og hasDiscount() returnerer false
+        
+        expect(order.discountCode).toEqual(null)
+        expect(order.hasDiscount()).toEqual(false)
     }
-
+    
     @Test
     fun `skal ha rabattkode når oppgitt`() {
         val order = Order(
@@ -95,11 +95,11 @@ class OrderTestAtrium {
             discountCode = "SUMMER2025",
             customerEmail = "test@test.no"
         )
-
-        // TODO: Sjekk at discountCode ikke er null, har riktig verdi, og hasDiscount() returnerer true
-        // Tips: Flere assertions kan settes sammen i en chain
+        
+        expect(order.discountCode).notToEqualNull().toEqual("SUMMER2025")
+        expect(order.hasDiscount()).toEqual(true)
     }
-
+    
     @Test
     fun `skal finne produkt i ordre`() {
         val order = Order(
@@ -112,11 +112,14 @@ class OrderTestAtrium {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at items inneholder spesifikke produkter
+        expect(order.items).toContain(OrderItem(laptop, quantity = 1))
+        expect(order.items).toContain(OrderItem(mouse, quantity = 2), OrderItem(laptop, quantity = 1))
 
-        // TODO: Sjekk at containsProduct() returnerer riktige verdier
+        expect(order.containsProduct("LAPTOP-1")).toEqual(true)
+        expect(order.containsProduct("MOUSE-1")).toEqual(true)
+        expect(order.containsProduct("KEYBOARD-1")).toEqual(false)
     }
-
+    
     @Test
     fun `skal ha riktig kunde-id`() {
         val order = Order(
@@ -125,17 +128,17 @@ class OrderTestAtrium {
             items = listOf(OrderItem(laptop, quantity = 1)),
             customerEmail = "test@test.no"
         )
-
-        // TODO: Sjekk at customerId har riktig verdi
+        
+        expect(order.customerId).toEqual("CUST-123")
     }
-
+    
     @Test
     fun `skal beregne element-subtotal korrekt`() {
         val item = OrderItem(mouse, quantity = 3)
-
-        // TODO: Sjekk at subtotal er korrekt beregnet
+        
+        expect(item.subtotal).toEqual(2400)
     }
-
+    
     @Test
     fun `soft assertions - alle evalueres i forventningsgruppe`() {
         val order = Order(
@@ -145,7 +148,11 @@ class OrderTestAtrium {
             discountCode = "SUMMER2025",
             customerEmail = "test@test.no"
         )
-
-        // TODO: Sjekk flere properties på order samtidig - alle assertions evalueres selv om en feiler
+        
+        expect(order) {
+            feature { f(it::id) }.toEqual("ORDER-1")
+            feature { f(it::customerId) }.toEqual("CUST-1")
+            feature { f(it::discountCode) }.notToEqualNull()
+        }
     }
 }

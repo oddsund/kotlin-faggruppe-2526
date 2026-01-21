@@ -1,22 +1,23 @@
+package løsningsforslag
+
+import assertk.all
+import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.containsAtLeast
+import assertk.assertions.hasSize
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isNotEmpty
+import assertk.assertions.isNotNull
+import assertk.assertions.isNull
+import assertk.assertions.isTrue
+import assertk.assertions.prop
 import domain.Order
 import domain.OrderItem
 import domain.Product
 import org.junit.jupiter.api.Test
 
-/*
- * AssertK - Assertion-bibliotek for Kotlin med fluent API
- * Dokumentasjon: https://github.com/assertk-org/assertk#usage
- *
- * Viktige assertions du vil trenge:
- * - assertThat(verdi).isEqualTo(forventet): Sammenligner verdier for likhet
- * - assertThat(verdi).isNull() / isNotNull(): Null-sjekker (kan knyttes til andre assertions)
- * - assertThat(verdi).isTrue() / isFalse(): Boolean-sjekker
- * - assertThat(collection).hasSize(antall): Sjekker størrelsen på en collection
- * - assertThat(collection).isNotEmpty(): Sjekker at en collection ikke er tom
- * - assertThat(collection).contains(element): Sjekker at en collection inneholder et element
- * - assertThat(collection).containsAtLeast(element1, element2, ...): Sjekker flere elementer
- * - assertThat(objekt).all { prop(Klasse::property).assertion }: Soft assertions på properties
- */
+// Dokumentasjon: https://github.com/assertk-org/assertk#usage
 class OrderTestAssertK {
 
     private val laptop = Product(
@@ -43,7 +44,7 @@ class OrderTestAssertK {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at subtotal har riktig verdi
+        assertThat(order.subtotal).isEqualTo(21600)
     }
 
     @Test
@@ -58,7 +59,8 @@ class OrderTestAssertK {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at total og tax har riktige verdier
+        assertThat(order.total).isEqualTo(25000)
+        assertThat(order.tax).isEqualTo(5000)
     }
 
     @Test
@@ -73,7 +75,8 @@ class OrderTestAssertK {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk antall elementer og at listen ikke er tom
+        assertThat(order.items).hasSize(2)
+        assertThat(order.items).isNotEmpty()
     }
 
     @Test
@@ -85,7 +88,8 @@ class OrderTestAssertK {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at discountCode er null og hasDiscount() returnerer false
+        assertThat(order.discountCode).isNull()
+        assertThat(order.hasDiscount()).isFalse()
     }
 
     @Test
@@ -98,8 +102,10 @@ class OrderTestAssertK {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at discountCode ikke er null, har riktig verdi, og hasDiscount() returnerer true
-        // Tips: flere assertions kan kalles i en chain
+        assertThat(order.discountCode)
+            .isNotNull()
+            .isEqualTo("SUMMER2025")
+        assertThat(order.hasDiscount()).isTrue()
     }
 
     @Test
@@ -114,9 +120,12 @@ class OrderTestAssertK {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at items inneholder spesifikke produkter
+        assertThat(order.items).contains(OrderItem(laptop, quantity = 1))
+        assertThat(order.items).containsAtLeast(OrderItem(mouse, quantity = 2), OrderItem(laptop, quantity = 1))
 
-        // TODO: Sjekk at containsProduct() returnerer riktige verdier
+        assertThat(order.containsProduct("LAPTOP-1")).isTrue()
+        assertThat(order.containsProduct("MOUSE-1")).isTrue()
+        assertThat(order.containsProduct("KEYBOARD-1")).isFalse()
     }
 
     @Test
@@ -128,14 +137,14 @@ class OrderTestAssertK {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at customerId har riktig verdi
+        assertThat(order.customerId).isEqualTo("CUST-123")
     }
 
     @Test
     fun `skal beregne element-subtotal korrekt`() {
         val item = OrderItem(mouse, quantity = 3)
 
-        // TODO: Sjekk at subtotal er korrekt beregnet
+        assertThat(item.subtotal).isEqualTo(2400)
     }
 
     @Test
@@ -148,6 +157,11 @@ class OrderTestAssertK {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk flere properties på order samtidig - alle assertions evalueres selv om en feiler
+        // Kan også gjøres med apply for ikke-soft
+        assertThat(order).all {
+            prop(Order::id).isEqualTo("ORDER-1")
+            prop(Order::customerId).isEqualTo("CUST-1")
+            prop(Order::discountCode).isNotNull()
+        }
     }
 }

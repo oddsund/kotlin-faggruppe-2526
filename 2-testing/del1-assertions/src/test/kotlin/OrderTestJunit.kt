@@ -1,20 +1,17 @@
+package løsningsforslag
+
 import domain.Order
 import domain.OrderItem
 import domain.Product
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertAll
+import kotlin.test.assertContains
 
-/*
- * JUnit 5 Assertions
- *
- * Viktige assertions du vil trenge:
- * - assertEquals(forventet, faktisk): Sammenligner to verdier for likhet
- * - assertTrue(betingelse): Sjekker at en betingelse er sann
- * - assertFalse(betingelse): Sjekker at en betingelse er usann
- * - assertNull(verdi): Sjekker at en verdi er null
- * - assertNotNull(verdi): Sjekker at en verdi ikke er null
- * - assertContains(collection, element): Sjekker at en collection inneholder et element
- * - assertAll({ assertion1 }, { assertion2 }, ...): Grupperer flere assertions som alle evalueres
- */
 class OrderTestJUnit {
 
     private val laptop = Product(
@@ -41,7 +38,7 @@ class OrderTestJUnit {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at subtotal har riktig verdi
+        assertEquals(21600, order.subtotal)
     }
 
     @Test
@@ -56,7 +53,8 @@ class OrderTestJUnit {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at total og tax har riktige verdier
+        assertEquals(25000, order.total)
+        assertEquals(5000, order.tax)
     }
 
     @Test
@@ -71,7 +69,8 @@ class OrderTestJUnit {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk antall elementer og at listen ikke er tom
+        assertEquals(2, order.items.size)
+        assertTrue(order.items.isNotEmpty())
     }
 
     @Test
@@ -83,7 +82,8 @@ class OrderTestJUnit {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at discountCode er null og at hasDiscount() returnerer false
+        assertNull(order.discountCode)
+        assertFalse(order.hasDiscount())
     }
 
     @Test
@@ -96,7 +96,9 @@ class OrderTestJUnit {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at discountCode ikke er null, har riktig verdi, og at hasDiscount() er true
+        assertNotNull(order.discountCode)
+        assertEquals("SUMMER2025", order.discountCode)
+        assertTrue(order.hasDiscount())
     }
 
     @Test
@@ -111,9 +113,11 @@ class OrderTestJUnit {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at items inneholder spesifikke produkter
+        assertContains(order.items, OrderItem(laptop, quantity = 1))
 
-        // TODO: Sjekk at containsProduct() returnerer riktige verdier
+        assertTrue(order.containsProduct("LAPTOP-1"))
+        assertTrue(order.containsProduct("MOUSE-1"))
+        assertFalse(order.containsProduct("KEYBOARD-1"))
     }
 
     @Test
@@ -125,14 +129,14 @@ class OrderTestJUnit {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk at customerId har riktig verdi
+        assertEquals("CUST-123", order.customerId)
     }
 
     @Test
     fun `skal beregne element-subtotal korrekt`() {
         val item = OrderItem(mouse, quantity = 3)
 
-        // TODO: Sjekk at subtotal er korrekt beregnet
+        assertEquals(2400, item.subtotal)
     }
 
     @Test
@@ -146,6 +150,10 @@ class OrderTestJUnit {
             customerEmail = "test@test.no"
         )
 
-        // TODO: Sjekk flere verdier samtidig - alle assertions skal evalueres selv om en feiler
+        assertAll(
+            { assertEquals("ORDER-1", order.id) },
+            { assertEquals("CUST-1", order.customerId) },
+            { assertNotNull(order.discountCode) }
+        )
     }
 }

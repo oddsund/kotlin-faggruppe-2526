@@ -1,34 +1,40 @@
+package løsningsforslag
+
+import assertk.assertThat
+import assertk.assertions.any
+import assertk.assertions.contains
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isGreaterThanOrEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isTrue
+import assertk.assertions.prop
+import services.email.BatchResult
 import services.email.EmailService
+import services.notification.NotificationEvent
 import domain.Order
 import domain.OrderItem
 import domain.OrderStatus
 import domain.Product
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.verify
+import io.mockk.verifyOrder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import services.Logger
+import services.InMemoryLogger
+import services.LogEntry
+import services.LogLevel
 import services.notification.NotificationService
-import services.order.OrderRepository
+import services.order.InMemoryOrderRepository
+import kotlin.text.contains
 
-/*
- * MockK - Mocking-bibliotek for Kotlin
- * Dokumentasjon: https://mockk.io/
- *
- * Viktige funksjoner du vil trenge:
- * - mockk<Type>(): Oppretter en mock av en type
- * - mockk<Type>(relaxed = true): Oppretter en relaxed mock som returnerer default-verdier
- * - spyk(objekt): Oppretter en spy som wrapper et ekte objekt
- * - every { mock.metode(args) } returns verdi: Setter opp hva en mock skal returnere
- * - every { mock.metode(args) } throws exception: Setter opp at en mock skal kaste exception
- * - verify(exactly = N) { mock.metode(args) }: Verifiserer at en metode ble kalt N ganger
- * - verify { mock.metode(match { predicate }) }: Verifiserer med custom matching
- * - verifyOrder { ... }: Verifiserer at kall skjedde i en spesifikk rekkefølge
- * - any(): Matcher alle argumenter av en type
- */
 class NotificationServiceTest {
-    
+
     private lateinit var emailService: EmailService
-    private lateinit var orderRepository: OrderRepository
-    private lateinit var logger: Logger
+    private lateinit var orderRepository: InMemoryOrderRepository
+    private lateinit var logger: InMemoryLogger
     private lateinit var notificationService: NotificationService
     
     private val testOrder = Order(
@@ -46,122 +52,208 @@ class NotificationServiceTest {
     
     @BeforeEach
     fun setup() {
-        // TODO: Opprett mock av EmailService
-        // TODO: Opprett ekte implementasjoner av OrderRepository og Logger
-        // TODO: Initialiser NotificationService med avhengighetene
-        // TODO: Lagre testOrder i repository
+        emailService = mockk()
+        orderRepository = InMemoryOrderRepository()
+        logger = InMemoryLogger()
+        notificationService = NotificationService(emailService, orderRepository, logger)
+
+        orderRepository.save(testOrder)
     }
     
     @Test
     fun `skal sende e-post ved ordre-bekreftelse`() {
-        // TODO: Sett opp EmailService mock til å returnere true
+        // Arrange
+        every { emailService.send(any()) } returns true
         
-        // TODO: Kall notifyOrderConfirmed
+        // Act
+        val result = notificationService.notifyOrderConfirmed(testOrder.id)
         
-        // TODO: Verifiser at emailService.send ble kalt én gang
-        // TODO: Verifiser at e-posten inneholder riktig recipient
-        // TODO: Verifiser at e-posten inneholder ordre-ID i subject
+        // Assert
+        assertThat(result).isTrue()
+        verify(exactly = 1) {
+            emailService.send(
+                match { email ->
+                    email.recipient == "customer@example.com" &&
+                    email.subject.contains(testOrder.id)
+                }
+            )
+        }
     }
     
     @Test
     fun `skal oppdatere ordre-status til CONFIRMED etter vellykket e-post`() {
-        // TODO: Sett opp EmailService mock
+        // Arrange
+        every { emailService.send(any()) } returns true
         
-        // TODO: Kall notifyOrderConfirmed
+        // Act
+        notificationService.notifyOrderConfirmed(testOrder.id)
         
-        // TODO: Hent ordre fra repository
-        // TODO: Verifiser at status er CONFIRMED
+        // Assert
+        val updatedOrder = orderRepository.findById(testOrder.id)
+        assertThat(updatedOrder).isNotNull()
+        assertThat(updatedOrder!!.status).isEqualTo(OrderStatus.CONFIRMED)
     }
     
     @Test
     fun `skal logge info når ordre-bekreftelse sendes`() {
-        // TODO: Sett opp EmailService mock
+        // Arrange
+        every { emailService.send(any()) } returns true
         
-        // TODO: Kall notifyOrderConfirmed
+        // Act
+        notificationService.notifyOrderConfirmed(testOrder.id)
         
-        // TODO: Verifiser at logger inneholder info-melding om "confirmed"
+        // Assert
+        assertThat(logger.logs).any {
+            it.prop(LogEntry::level).isEqualTo(LogLevel.INFO)
+            it.prop(LogEntry::message).contains("confirmed")
+        }
     }
     
     @Test
     fun `skal returnere false og ikke oppdatere status hvis e-post feiler`() {
-        // TODO: Sett opp EmailService mock til å returnere false
+        // Arrange
+        every { emailService.send(any()) } returns false
         
-        // TODO: Kall notifyOrderConfirmed
+        // Act
+        val result = notificationService.notifyOrderConfirmed(testOrder.id)
         
-        // TODO: Verifiser at resultatet er false
-        // TODO: Verifiser at ordre-status fortsatt er PENDING
-        // TODO: Verifiser at error ble logget
+        // Assert
+        assertThat(result).isFalse()
+        
+        val order = orderRepository.findById(testOrder.id)
+        assertThat(order!!.status).isEqualTo(OrderStatus.PENDING)
+        
+        assertThat(logger.logs).any {
+            it.prop(LogEntry::level).isEqualTo(LogLevel.ERROR)
+            it.prop(LogEntry::message).contains("Failed to send")
+        }
     }
     
     @Test
     fun `skal håndtere exception fra EmailService`() {
-        // TODO: Sett opp EmailService mock til å kaste exception
+        // Arrange
+        every { emailService.send(any()) } throws RuntimeException("Network error")
         
-        // TODO: Kall notifyOrderConfirmed
+        // Act
+        val result = notificationService.notifyOrderConfirmed(testOrder.id)
         
-        // TODO: Verifiser at resultatet er false
-        // TODO: Verifiser at exception ble logget med error-nivå
+        // Assert
+        assertThat(result).isFalse()
+        assertThat(logger.logs).any {
+            it.prop(LogEntry::level).isEqualTo(LogLevel.ERROR)
+            it.prop(LogEntry::throwable).isNotNull()
+        }
     }
     
     @Test
     fun `skal returnere false hvis ordre ikke finnes`() {
-        // TODO: Kall notifyOrderConfirmed med ugyldig ordre-ID
+        // Act
+        val result = notificationService.notifyOrderConfirmed("NON-EXISTENT")
         
-        // TODO: Verifiser at resultatet er false
-        // TODO: Verifiser at emailService.send IKKE ble kalt
-        // TODO: Verifiser at error ble logget
+        // Assert
+        assertThat(result).isFalse()
+        verify(exactly = 0) { emailService.send(any()) }
+        assertThat(logger.logs).any {
+            it.prop(LogEntry::level).isEqualTo(LogLevel.ERROR)
+            it.prop(LogEntry::message).contains("not found")
+        }
     }
     
     @Test
     fun `skal ikke sende e-post hvis ordre ikke er i PENDING status`() {
-        // TODO: Oppdater ordre til CONFIRMED status i repository
+        // Arrange
+        val confirmedOrder = testOrder.confirm()
+        orderRepository.save(confirmedOrder)
         
-        // TODO: Kall notifyOrderConfirmed
+        // Act
+        val result = notificationService.notifyOrderConfirmed(testOrder.id)
         
-        // TODO: Verifiser at resultatet er false
-        // TODO: Verifiser at emailService.send IKKE ble kalt
-        // TODO: Verifiser at warning ble logget
+        // Assert
+        assertThat(result).isFalse()
+        verify(exactly = 0) { emailService.send(any()) }
+        assertThat(logger.logs).any {
+            it.prop(LogEntry::level).isEqualTo(LogLevel.WARN)
+            it.prop(LogEntry::message).contains("not in PENDING status")
+        }
     }
     
     @Test
     fun `skal sende kansellerings-e-post med årsak`() {
-        // TODO: Sett opp EmailService mock
+        // Arrange
+        every { emailService.send(any()) } returns true
+        val cancellationReason = "Customer requested cancellation"
         
-        // TODO: Kall notifyOrderCancelled med årsak
+        // Act
+        val result = notificationService.notifyOrderCancelled(testOrder.id, cancellationReason)
         
-        // TODO: Verifiser at emailService.send ble kalt
-        // TODO: Verifiser at e-post body inneholder årsaken
-        // TODO: Verifiser at ordre-status er CANCELLED
+        // Assert
+        assertThat(result).isTrue()
+        verify(exactly = 1) {
+            emailService.send(
+                match { email ->
+                    email.body.contains(cancellationReason)
+                }
+            )
+        }
+        
+        val cancelledOrder = orderRepository.findById(testOrder.id)
+        assertThat(cancelledOrder!!.status).isEqualTo(OrderStatus.CANCELLED)
     }
     
     @Test
     fun `skal sende batch-notifikasjoner`() {
-        // TODO: Opprett flere ordre i repository
-        // TODO: Sett opp EmailService.sendBatch mock
+        // Arrange
+        val order2 = testOrder.copy(id = "ORDER-124", customerEmail = "customer2@example.com")
+        val order3 = testOrder.copy(id = "ORDER-125", customerEmail = "customer3@example.com")
+        orderRepository.save(order2)
+        orderRepository.save(order3)
         
-        // TODO: Kall notifyBatchOrders
+        every { emailService.sendBatch(any()) } returns BatchResult(successful = 3, failed = 0)
         
-        // TODO: Verifiser at sendBatch ble kalt med riktig antall e-poster
-        // TODO: Verifiser logg-meldinger
+        // Act
+        val result = notificationService.notifyBatchOrders(
+            listOf(testOrder.id, order2.id, order3.id),
+            NotificationEvent.ORDER_CONFIRMED
+        )
+        
+        // Assert
+        assertThat(result.successful).isEqualTo(3)
+        assertThat(result.failed).isEqualTo(0)
+        verify(exactly = 1) {
+            emailService.sendBatch(match { it.size == 3 })
+        }
+        assertThat(logger.logs.size).isGreaterThanOrEqualTo(2)
+        assertThat(logger.logs[0].message).contains("Processing batch notification for 3 orders, event: ORDER_CONFIRMED")
+        assertThat(logger.logs.last().message).contains("Batch notification completed: 3 successful, 0 failed")
     }
     
     @Test
     fun `skal verifisere rekkefølge på kall til logger`() {
-        // TODO: Sett opp EmailService mock, og lag ny logger ved hjelp av spyk
+        // Arrange
+        val logger = spyk(InMemoryLogger())
+        val notificationService = NotificationService(emailService, orderRepository, logger)
+        every { emailService.send(any()) } returns true
         
-        // TODO: Kall notifyOrderConfirmed
+        // Act
+        notificationService.notifyOrderConfirmed(testOrder.id)
         
-        // TODO: Bruk verifyOrder for å sjekke at:
-        // 1. Info logges først (processing)
-        // 2. Deretter logges suksess
+        // Assert - sjekk at loggene kommer i riktig rekkefølge
+        verifyOrder {
+            logger.info("Processing order confirmation notification for order {}", testOrder.id)
+            logger.info("Order {} confirmed and notification sent to {}", testOrder.id, testOrder.customerEmail)
+        }
     }
-
+    
     @Test
     fun `skal bruke relaxed mock for å teste kun det som er viktig`() {
-        // TODO: Sett opp relaxed EmailService mock og lag ny NotificationService
-
-        // TODO: Kall notifyOrderConfirmed
-
-        // TODO: Verifiser at emailService ble kalt
+        // Arrange - relaxed mock returnerer default-verdier
+        val relaxedEmailService = mockk<EmailService>(relaxed = true)
+        val serviceWithRelaxed = NotificationService(relaxedEmailService, orderRepository, logger)
+        
+        // Act
+        serviceWithRelaxed.notifyOrderConfirmed(testOrder.id)
+        
+        // Assert - vi trenger kun verifisere at send ble kalt
+        verify { relaxedEmailService.send(any()) }
     }
 }

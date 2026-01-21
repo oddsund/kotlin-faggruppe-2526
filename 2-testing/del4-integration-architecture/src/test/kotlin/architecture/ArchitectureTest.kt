@@ -1,52 +1,150 @@
-package architecture
+package architecture.løsningsforslag;
 
+import com.lemonappdev.konsist.api.KoModifier
+import com.lemonappdev.konsist.api.Konsist
+import com.lemonappdev.konsist.api.ext.list.*
+import com.lemonappdev.konsist.api.verify.*
 import org.junit.jupiter.api.Test
 
 class ArchitectureTest {
-    
+
     @Test
     fun `domain skal ikke avhenge av infrastructure`() {
-        // TODO: Hent alle klasser i domain-package
-        // TODO: Verifiser at de ikke har imports fra infrastructure
-        // Hint: Konsist.scopeFromProject().classes().withPackage("..domain..")
-        //       .shouldNot().dependOn("..infrastructure..")
+        Konsist.scopeFromProject()
+            .files
+            .withPackage("..domain..")
+            .assertTrue { !it.hasImport { import -> import.name.contains("infrastructure") } }
     }
-    
+
     @Test
     fun `domain skal ikke avhenge av eksterne biblioteker`() {
-        // TODO: Domain skal være "rent" - ingen avhengigheter til
-        // Spring, Exposed, HTTP-klienter, etc.
-        // Tillatte unntak: kotlin.*, java.time.*
+        val allowedImports = listOf(
+            "kotlin..",
+            "java.time..",
+            "java.util..",
+            "java.lang.."
+        )
+
+        Konsist.scopeFromProject()
+            .files
+            .withPackage("..domain..")
+            .assertTrue { klass ->
+                klass.imports.all { import ->
+                    allowedImports.any { allowed ->
+                        import.name.startsWith(allowed.removeSuffix(".."))
+                    } || import.name.startsWith("com.example.domain")
+                }
+            }
     }
-    
+
     @Test
     fun `repositories må ha interface i domain`() {
-        // TODO: Alle klasser som ender med "Repository" i infrastructure
-        // må ha et tilsvarende interface i domain
+        val domainInterfaces = Konsist.scopeFromProject()
+            .interfaces()
+            .withPackage("..domain..")
+            .filter { it.name.endsWith("Repository") }
+            .map { it.name }
+            .toSet()
+
+        Konsist.scopeFromProject()
+            .classes()
+            .withPackage("..infrastructure..")
+            .filter { it.name.contains("Repository") }
+            .assertTrue { implClass ->
+                val expectedInterfaceName = implClass.name
+                    .removePrefix("Jdbc")
+                    .removePrefix("InMemory")
+
+                domainInterfaces.contains(expectedInterfaceName)
+            }
     }
-    
+
     @Test
     fun `services må ha interface i domain`() {
-        // TODO: Samme som over, men for services
-        // Hint: infrastructure implementasjoner kan f.eks hete "JdbcOrderRepository"
-        // og domain interface må da hete "OrderRepository"
+        val domainInterfaces = Konsist.scopeFromProject()
+            .interfaces()
+            .withPackage("..domain..")
+            .filter { it.name.endsWith("Service") }
+            .map { it.name }
+            .toSet()
+
+        Konsist.scopeFromProject()
+            .classes()
+            .withPackage("..infrastructure..")
+            .filter { it.name.contains("Service") }
+            .assertTrue { implClass ->
+                val expectedInterfaceName = implClass.name
+                    .removePrefix("Jdbc")
+                    .removePrefix("InMemory")
+
+                domainInterfaces.contains(expectedInterfaceName)
+            }
     }
-    
+
     @Test
     fun `alle test-klasser skal ende med Test`() {
-        // TODO: Verifiser at alle test-klasser følger navnekonvensjon
-        // Hint: Konsist har funksjon for å sjekke test sources
+        Konsist.scopeFromTest()
+            .classes()
+            .assertTrue { it.name.endsWith("Test") }
     }
-    
+
     @Test
     fun `integration test-klasser skal ende med IntegrationTest`() {
-        // TODO: Alle klasser som bruker @Testcontainers eller har "Integration" i navnet
-        // skal ende med "IntegrationTest"
+        Konsist.scopeFromTest()
+            .classes()
+            .filter { klass ->
+                klass.hasAnnotation { it.name == "Testcontainers" } ||
+                        klass.name.contains("Integration")
+            }
+            .assertTrue { it.name.endsWith("IntegrationTest") }
     }
-    
+
     @Test
-    fun `ingen klasser skal bruke System-out-println`() {
-        // TODO: Finn alle kall til System.out.println
-        // Dette burde være logger i stedet
+    fun `ingen klasser skal bruke System out println`() {
+        Konsist.scopeFromProject()
+            .files
+            .assertTrue { file ->
+                !file.text.contains("System.out.println") &&
+                        !file.text.contains("println(") // Kotlin println
+            }
+    }
+
+    @Test
+    fun `domain klasser skal ikke ha mutable state`() {
+        Konsist.scopeFromProject()
+            .classes()
+            .withPackage("..domain..")
+            .filter { it.hasModifier(KoModifier.DATA) }
+            .assertTrue { klass ->
+                klass.properties().all { !it.isVar }
+            }
+    }
+
+    @Test
+    fun `test klasser skal ha minst én test-metode`() {
+        Konsist.scopeFromTest()
+            .classes()
+            .filter { it.name.endsWith("Test") }
+            .assertTrue { klass ->
+                klass.functions().any {
+                    it.hasAnnotation { annotation -> annotation.name == "Test" }
+                }
+            }
+    }
+
+    @Test
+    fun `infrastructure skal ikke avhenge av presentation layer`() {
+        Konsist.scopeFromProject()
+            .files
+            .withPackage("..infrastructure..")
+            .assertTrue { !it.hasImport { import -> import.name.contains("presentation") } }
+    }
+
+    @Test
+    fun `exceptions skal ende med Exception`() {
+        Konsist.scopeFromProject()
+            .classes()
+            .filter { it.hasParentClass { parent -> parent.name == "Exception" } }
+            .assertTrue { it.name.endsWith("Exception") }
     }
 }

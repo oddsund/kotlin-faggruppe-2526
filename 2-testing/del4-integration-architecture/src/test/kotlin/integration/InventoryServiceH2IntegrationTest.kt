@@ -1,4 +1,4 @@
-package integration
+package integration.løsningsforslag
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import infra.DatabaseFactory

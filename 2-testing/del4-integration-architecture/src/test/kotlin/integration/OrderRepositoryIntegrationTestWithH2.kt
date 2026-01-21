@@ -1,4 +1,4 @@
-package integration
+package integration.løsningsforslag
 
 import assertk.assertThat
 import assertk.assertions.*
@@ -7,6 +7,9 @@ import domain.OrderItem
 import domain.OrderStatus
 import domain.Product
 import infra.DatabaseFactory
+import integration.aProduct
+import integration.anOrder
+import integration.anOrderItem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import services.order.JdbcOrderRepository
@@ -46,13 +49,20 @@ class OrderRepositoryIntegrationTestWithH2 {
         val retrieved = repository.findById(order.id)
 
         // Assert
-        // TODO: Verifiser at retrieved ikke er null
-        // TODO: Verifiser at ordre-ID er korrekt
-        // TODO: Verifiser at customerId er korrekt
-        // TODO: Verifiser at customerEmail er korrekt
-        // TODO: Verifiser at status er PENDING
-        // TODO: Verifiser at items har riktig størrelse
-        // TODO: Verifiser at første item har riktig produkt-ID og quantity
+        assertThat(retrieved).isNotNull()
+        assertThat(retrieved!!).apply {
+            prop(Order::id).isEqualTo("ORDER-123")
+            prop(Order::customerId).isEqualTo("CUST-1")
+            prop(Order::customerEmail).isEqualTo("customer@example.com")
+            prop(Order::status).isEqualTo(OrderStatus.PENDING)
+            prop(Order::items).hasSize(2)
+        }
+
+        // Verifiser items
+        assertThat(retrieved.items[0]).apply {
+            prop(OrderItem::product).prop(Product::id).isEqualTo("LAPTOP-1")
+            prop(OrderItem::quantity).isEqualTo(1)
+        }
     }
 
     @Test
@@ -67,7 +77,7 @@ class OrderRepositoryIntegrationTestWithH2 {
 
         // Assert
         val retrieved = repository.findById("ORDER-123")
-        // TODO: Verifiser at status er oppdatert til CONFIRMED
+        assertThat(retrieved?.status).isEqualTo(OrderStatus.CONFIRMED)
     }
 
     @Test
@@ -84,9 +94,12 @@ class OrderRepositoryIntegrationTestWithH2 {
         val customer2Orders = repository.findByCustomerId("CUST-2")
 
         // Assert
-        // TODO: Verifiser at kunde1 har 3 ordrer
-        // TODO: Verifiser at kunde2 har 2 ordrer
-        // TODO: Verifiser at alle ordrer for kunde1 har riktig customerId
+        assertThat(customer1Orders).hasSize(3)
+        assertThat(customer2Orders).hasSize(2)
+
+        assertThat(customer1Orders).each {
+            it.prop(Order::customerId).isEqualTo("CUST-1")
+        }
     }
 
     @Test
@@ -95,7 +108,7 @@ class OrderRepositoryIntegrationTestWithH2 {
         val result = repository.findById("NON-EXISTENT")
 
         // Assert
-        // TODO: Verifiser at resultatet er null
+        assertThat(result).isNull()
     }
 
     @Test
@@ -114,10 +127,14 @@ class OrderRepositoryIntegrationTestWithH2 {
         val retrieved = repository.findById("ORDER-MANY")
 
         // Assert
-        // TODO: Verifiser at retrieved ikke er null
-        // TODO: Verifiser at alle 10 items er lagret
-        // TODO: Verifiser at hvert item har riktig produkt-ID og quantity
-        // Tips: Bruk forEachIndexed eller lignende for å sjekke alle items
+        assertThat(retrieved).isNotNull()
+        assertThat(retrieved!!.items).hasSize(10)
+
+        retrieved.items.forEachIndexed { index, item ->
+            val expected = index + 1
+            assertThat(item.product.id).isEqualTo("PROD-$expected")
+            assertThat(item.quantity).isEqualTo(expected)
+        }
     }
 
     @Test
@@ -133,7 +150,7 @@ class OrderRepositoryIntegrationTestWithH2 {
         val retrieved = repository.findById("ORDER-DISCOUNT")
 
         // Assert
-        // TODO: Verifiser at discountCode er bevart
+        assertThat(retrieved?.discountCode).isEqualTo("SUMMER2025")
     }
 
     @Test
@@ -149,6 +166,6 @@ class OrderRepositoryIntegrationTestWithH2 {
         val retrieved = repository.findById("ORDER-NO-DISCOUNT")
 
         // Assert
-        // TODO: Verifiser at discountCode er null
+        assertThat(retrieved?.discountCode).isNull()
     }
 }

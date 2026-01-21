@@ -5,10 +5,10 @@ fun prosesserAvlesninger(avlesninger: List<Avlesning>): List<String> {
 
     for (avlesning in avlesninger) {
         avlesning.let {
-            // Kun koden inni let'en her skal endres
-            if (!it.hoppOver) {
-                prosessert += "avlesning:${avlesning.id}:${avlesning.verdi}"
-            }
+            // Litt tydeligere hva som gjøres når en slipper negativ if-sjekk og kan bruke continue
+            if (it.hoppOver) continue
+            prosessert += "avlesning:${avlesning.id}:${avlesning.verdi}"
+
         }
     }
 

@@ -1,16 +1,21 @@
 package workshop.data
 
-// LEGACY: enum + payload-style data class. Hva om vi
-enum class BestillingStatus { VENTER, FULLFOERT, FEIL }
+// Refaktorert: sealed interface + data object + data class for payload
+sealed interface BestillingResultat
 
-data class BestillingResultat(val status: BestillingStatus, val melding: String?)
+data object Venter : BestillingResultat
+data object Feil : BestillingResultat
+data class Fullfoert(val melding: String) : BestillingResultat
 
-fun prosesserBestilling(beloep: Int): BestillingResultat {
-    return when {
-        beloep <= 0 -> BestillingResultat(BestillingStatus.FEIL, "ugyldig beloep")
-        beloep < 100 -> BestillingResultat(BestillingStatus.VENTER, "kø")
-        else -> BestillingResultat(BestillingStatus.FULLFOERT, "beloep of $beloep ok!")
+fun prosesserBestilling(beloep: Int): BestillingResultat =
+    when {
+        beloep <= 0 -> Feil
+        beloep < 100 -> Venter
+        else -> Fullfoert("beloep of $beloep ok!")
     }
-}
 
-fun formaterBestillingResultat(r: BestillingResultat): String = "${r.status}:${r.melding ?: "" }"
+fun formaterBestillingResultat(r: BestillingResultat): String = when (r) {
+    Venter -> "VENTER:kø"
+    Feil -> "FEIL:ugyldig beloep"
+    is Fullfoert -> "FULLFOERT:${r.melding}"
+}

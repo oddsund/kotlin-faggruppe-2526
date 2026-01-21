@@ -1,119 +1,149 @@
-package com.example.ordre.ws2.service
+package com.example.ordre.ws2.service.løsning
 
+import com.example.ordre.ws2.domain.model.løsning.Kunde
+import com.example.ordre.ws2.domain.model.løsning.ProduktLager
+import com.example.ordre.ws2.fake.løsning.InMemoryKundePort
+import com.example.ordre.ws2.fake.løsning.InMemoryProduktLagerPort
 import com.example.ordre.ws2.model.ValideringsResultat
-import com.example.ordre.ws2.persistence.repository.KundeRepository
-import com.example.ordre.ws2.persistence.repository.ProduktLagerRepository
-import com.example.ordre.ws2.testdata.KundeEntityMother
 import com.example.ordre.ws2.testdata.OrdreMother
-import com.example.ordre.ws2.testdata.ProduktLagerEntityMother
+import com.example.ordre.ws2.testdata.gyldig
+import com.example.ordre.ws2.testdata.inaktiv
+import com.example.ordre.ws2.testdata.påLager
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.util.*
+
+// LØSNING: Refaktorert til å bruke in-memory fakes i stedet for MockK
+//
+// Sammenligning med original test:
+// - Litt mindre setup
+// - FØR: MockK stubbing med every { ... } returns ...
+// - ETTER: Direct data setup med .leggTil()
+// - FØR: Må importere mockk, every, verify
+// - ETTER: Bare behøver in-memory fakes
+//
+// Fordeler:
+// 1. Mer lesbar kode (ingen mocking DSL)
+// 2. Enklere å forstå test setup
+// 3. Kan verifisere state i stedet for interactions
+// 4. Fakes fungerer som "ekte" implementasjon
 
 class OrdreServiceTest {
-    
-    private val kundeRepository: KundeRepository = mockk()
-    private val produktLagerRepository: ProduktLagerRepository = mockk()
-    
-    private val ordreService = OrdreService(kundeRepository, produktLagerRepository)
-    
+
+    // ENDRET: Byttet fra mockk() til in-memory fakes
+    // FØR: private val kundeRepository: KundeRepository = mockk()
+    // ETTER: private val kundePort = InMemoryKundePort()
+    private val kundePort = InMemoryKundePort()
+    private val produktLagerPort = InMemoryProduktLagerPort()
+
+    private val ordreService = OrdreService(kundePort, produktLagerPort)
+
+    @BeforeEach
+    fun setUp() {
+        // Tøm fakes før hver test for å sikre isolasjon
+        kundePort.tøm()
+        produktLagerPort.tøm()
+    }
+
     @Test
     fun `skal returnere TotalForLav når ordre er under minimum`() {
-        // 1. Lag ordre med total under 100 (bruk OrdreMother.ordreMedTotal(50.0))
         val ordre = OrdreMother.ordreMedTotal(50.0)
 
-        // 2. Kall ordreService.validerOrdre (IKKE stub repository!)
         val resultat = ordreService.validerOrdre(ordre)
 
-        // 3. Assert at resultatet er ValideringsResultat.Ugyldig.TotalForLav
         resultat.shouldBeInstanceOf<ValideringsResultat.Ugyldig.TotalForLav>()
-
-        // 4. Assert at resultat.total == 50.0 og resultat.minimum == 100.0
         resultat.total shouldBe 50.0
         resultat.minimum shouldBe 100.0
 
-        // 5. Verifiser at kundeRepository IKKE ble kalt (early return)
-        verify(exactly = 0) { kundeRepository.findById(any()) }
+        // Merk: Ingen verify nødvendig - testen er fokusert på output, ikke interactions
     }
-    
+
     @Test
     fun `skal returnere KundeIkkeFunnet når kunde ikke eksisterer`() {
-        // 1. Lag gyldig ordre (over minimum total)
         val ordre = OrdreMother.gyldigOrdre()
 
-        // 2. Stub kundeRepository.findById til å returnere Optional.empty()
-        every { kundeRepository.findById(any()) } returns Optional.empty()
+        // 2. IKKE legg til kunde i kundePort (den vil returnere null)
+        // FØR: every { kundeRepository.findById(any()) } returns Optional.empty()
+        // ETTER: Ingenting! Fake returnerer null by default
 
-        // 3. Kall ordreService.validerOrdre
         val resultat = ordreService.validerOrdre(ordre)
 
-        // 4. Assert ValideringsResultat.Ugyldig.KundeIkkeFunnet
         resultat.shouldBeInstanceOf<ValideringsResultat.Ugyldig.KundeIkkeFunnet>()
-
-        // 5. Assert at kundeId i resultat matcher request
         resultat.kundeId shouldBe ordre.kundeId
     }
-    
+
     @Test
     fun `skal returnere KundeInaktiv når kunde ikke er aktiv`() {
-        // 1. Lag gyldig ordre
         val ordre = OrdreMother.gyldigOrdre()
 
-        // 2. Stub kundeRepository.findById til å returnere Optional.of(inaktivKunde)
-        val inaktivKunde = KundeEntityMother.inaktivKunde()
-        every { kundeRepository.findById(any()) } returns Optional.of(inaktivKunde)
+        // 2. Legg til inaktiv kunde
+        // FØR:
+        //   val inaktivKunde = KundeEntityMother.inaktivKunde()
+        //   every { kundeRepository.findById(any()) } returns Optional.of(inaktivKunde)
+        // ETTER:
+        kundePort.leggTil(Kunde.inaktiv(id = ordre.kundeId))
 
-        // 3. Assert ValideringsResultat.Ugyldig.KundeInaktiv med riktig ID
         val resultat = ordreService.validerOrdre(ordre)
         resultat.shouldBeInstanceOf<ValideringsResultat.Ugyldig.KundeInaktiv>()
         resultat.kundeId shouldBe ordre.kundeId
     }
-    
+
     @Test
     fun `skal returnere UtAvLager når produkt er utilgjengelig`() {
-        // 1. Lag ordre med 2 varer ("P1" og "P2")
         val ordre = OrdreMother.ordreMedVarer("P1", "P2")
 
-        // 2. Stub kundeRepository med aktivKunde wrappet i Optional.of()
-        val aktivKunde = KundeEntityMother.aktivKunde()
-        every { kundeRepository.findById(any()) } returns Optional.of(aktivKunde)
+        // 2. Legg til aktiv kunde
+        // FØR: 2 linjer (val aktivKunde = ..., every { ... } returns Optional.of(...))
+        // ETTER: 1 linje
+        kundePort.leggTil(Kunde.gyldig(id = ordre.kundeId))
 
-        // 3. Stub produktLagerRepository:
-        val påLagerEntity = ProduktLagerEntityMother.påLager("P1")
-        every { produktLagerRepository.findByProduktId("P1") } returns påLagerEntity
-        every { produktLagerRepository.findByProduktId("P2") } returns null
+        // 3. Legg til P1 på lager, men ikke P2
+        // FØR:
+        //   val påLagerEntity = ProduktLagerEntityMother.påLager("P1")
+        //   every { produktLagerRepository.findByProduktId("P1") } returns påLagerEntity
+        //   every { produktLagerRepository.findByProduktId("P2") } returns null
+        // ETTER:
+        produktLagerPort.leggTil(ProduktLager.påLager("P1"))
+        // P2 legges ikke til, så den returnerer null
 
-        // 4. Assert ValideringsResultat.Ugyldig.UtAvLager med produktId = "P2"
         val resultat = ordreService.validerOrdre(ordre)
         resultat.shouldBeInstanceOf<ValideringsResultat.Ugyldig.UtAvLager>()
         resultat.produktId shouldBe "P2"
     }
-    
+
     @Test
     fun `skal returnere Gyldig når alle sjekker passerer`() {
-        // 1. Lag gyldig ordre med 3 varer
         val ordre = OrdreMother.ordreMedVarer("P1", "P2", "P3")
 
-        // 2. Stub kundeRepository med Optional.of(aktivKunde)
-        val aktivKunde = KundeEntityMother.aktivKunde()
-        every { kundeRepository.findById(any()) } returns Optional.of(aktivKunde)
+        // 2. Setup test data (før: 5 linjer, etter: 2 linjer!)
+        // FØR:
+        //   val aktivKunde = KundeEntityMother.aktivKunde()
+        //   every { kundeRepository.findById(any()) } returns Optional.of(aktivKunde)
+        //   every { produktLagerRepository.findByProduktId("P1") } returns ProduktLagerEntityMother.påLager("P1")
+        //   every { produktLagerRepository.findByProduktId("P2") } returns ProduktLagerEntityMother.påLager("P2")
+        //   every { produktLagerRepository.findByProduktId("P3") } returns ProduktLagerEntityMother.påLager("P3")
+        // ETTER:
+        kundePort.leggTil(Kunde.gyldig(id = ordre.kundeId))
+        produktLagerPort.leggTilPåLager("P1" to 100, "P2" to 50, "P3" to 75)
 
-        // 3. Stub produktLagerRepository for alle 3 produktIds med påLager entities
-        every { produktLagerRepository.findByProduktId("P1") } returns ProduktLagerEntityMother.påLager("P1")
-        every { produktLagerRepository.findByProduktId("P2") } returns ProduktLagerEntityMother.påLager("P2")
-        every { produktLagerRepository.findByProduktId("P3") } returns ProduktLagerEntityMother.påLager("P3")
-
-        // 4. Kall ordreService.validerOrdre
         val resultat = ordreService.validerOrdre(ordre)
 
-        // 5. Assert Gyldig
         resultat.shouldBeInstanceOf<ValideringsResultat.Gyldig>()
-
-        // 6. Tell opp hvor mange linjer kode du trengte for stubbing!
-        // Svar: 5 linjer (1 for kunde + 3 for produkter + 1 for aktivKunde variabel)
     }
 }
+
+/*
+ * SAMMENDRAG AV FORBEDRINGER:
+ *
+ * 1. Mindre kode
+ * 2. Enklere setup: Direct assignment vs mocking DSL
+ * 3. Mer lesbar: Ingen every/returns boilerplate
+ * 4. Ingen verify nødvendig: Fokuserer på output, ikke interactions
+ * 5. Enklere å vedlikeholde: Færre avhengigheter (ingen MockK)
+ *
+ * Ports & Adapters tilfører:
+ * - Domain layer (OrdreService) er uavhengig av persistence details
+ * - Enkelt å bytte implementasjon (fake vs adapter vs mock)
+ * - Testbar kode uten mocking frameworks
+ */

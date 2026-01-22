@@ -1,3 +1,3 @@
 dependencies {
-    implementation(project(":felles"))
+    implementation(project(":2-testing:felles"))
 }

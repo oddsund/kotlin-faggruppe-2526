@@ -1,5 +1,5 @@
 dependencies {
-    implementation(project(":felles"))
+    implementation(project(":2-testing:felles"))
 
     // For integration tests
     testImplementation("org.testcontainers:postgresql:1.19.3")

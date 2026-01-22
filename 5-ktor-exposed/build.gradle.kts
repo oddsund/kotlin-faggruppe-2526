@@ -1,20 +1,12 @@
 plugins {
-    kotlin("jvm") version "2.3.0"
-    kotlin("plugin.serialization") version "2.3.0"
+    kotlin("jvm")
+    kotlin("plugin.serialization")
     application
-}
-
-group = "no.bekk.workshop"
-version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
 }
 
 val ktorVersion = "2.3.7"
 val exposedVersion = "0.45.0"
 val koinVersion = "3.5.3"
-val kotestVersion = "5.8.0"
 
 dependencies {
     // Ktor
@@ -40,7 +32,7 @@ dependencies {
     // Test
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion")
     testImplementation("io.ktor:ktor-client-content-negotiation-jvm:$ktorVersion")
-    testImplementation("io.kotest:kotest-assertions-core-jvm:$kotestVersion")
+    testImplementation("io.kotest:kotest-assertions-core-jvm:5.8.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
@@ -49,16 +41,6 @@ dependencies {
 
 application {
     mainClass.set("no.bekk.workshop.ApplicationKt")
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-tasks.test {
-    useJUnitPlatform()
 }
 
 kotlin {

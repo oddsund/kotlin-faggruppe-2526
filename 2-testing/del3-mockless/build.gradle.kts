@@ -1,4 +1,4 @@
 dependencies {
-    implementation(project(":felles"))
-    testImplementation("io.mockk:mockk:1.14.6")
+    implementation(project(":2-testing:felles"))
+    testImplementation("io.mockk:mockk:1.13.8")
 }

@@ -1,12 +1,14 @@
-plugins {
-    kotlin("jvm")
-}
+// Parent build for 1-intro submodules
+// Felles konfigurasjon for intro-workshopen
 
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
     configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
         jvmToolchain(21)
+        compilerOptions {
+            freeCompilerArgs.add("-Xcontext-parameters")
+        }
     }
 
     dependencies {
@@ -14,10 +16,8 @@ subprojects {
         val testImplementation by configurations
 
         implementation(kotlin("stdlib"))
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
         testImplementation(kotlin("test"))
         testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
-        testImplementation("com.willowtreeapps.assertk:assertk:0.28.1")
-        testImplementation("io.kotest:kotest-assertions-core:5.8.0")
-        testImplementation("ch.tutteli.atrium:atrium-fluent:1.2.0")
     }
 }

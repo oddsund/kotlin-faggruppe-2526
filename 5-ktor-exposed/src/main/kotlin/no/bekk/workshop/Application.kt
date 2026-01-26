@@ -15,7 +15,7 @@ fun Application.module() {
     configureSerialization()
 
     // Opprett produksjons-dependencies via composition root
-    val ordreValidering = AppFactory.createProductionApp()
+    val deps = AppFactory.createProductionApp()
 
-    configureRouting(ordreValidering)
+    configureRouting(deps.ordreValidering, deps.kundeRepository)
 }

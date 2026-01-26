@@ -6,28 +6,41 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.bekk.workshop.domain.OrdreValidering
-import no.bekk.workshop.domain.ValideringsResultat
 import no.bekk.workshop.dto.OrdreRequest
 import no.bekk.workshop.dto.ValideringsRespons
+import no.bekk.workshop.repository.KundeRepository
 
 /**
  * Konfigurerer Ktor routing med manuell DI (composition root).
- * OrdreValidering injiseres som parameter.
+ * Dependencies injiseres som parametere.
  */
-fun Application.configureRouting(ordreValidering: OrdreValidering) {
+fun Application.configureRouting(
+    ordreValidering: OrdreValidering,
+    kundeRepository: KundeRepository
+) {
     routing {
+        // === Oppgave 1: Health endpoint  ===
         // TODO: Implementer GET /health som returnerer "OK"
+        // Tips: Bruk call.respondText()
+        
 
+        // === Oppgave 2: Valider ordre ===
         // TODO: Implementer POST /api/ordrer/valider
-        // 1. Motta OrdreRequest med call.receive<OrdreRequest>()
-        // 2. Konverter til domene med request.tilDomene()
-        // 3. Kall ordreValidering.valider(ordre)
-        // 4. Map ValideringsResultat til HTTP status og ValideringsRespons:
-        //    - Gyldig -> 200 OK
-        //    - TotalForLav -> 400 Bad Request
-        //    - KundeIkkeFunnet -> 404 Not Found
-        //    - KundeInaktiv -> 400 Bad Request
-        //    - UtAvLager -> 409 Conflict
-        // 5. Bruk call.respond(HttpStatusCode.X, ValideringsRespons(...))
+        // Tips: Motta request, valider, map resultat til riktig HTTP-status
+        // Statuskoder: Gyldig->200, TotalForLav->400, KundeIkkeFunnet->404,
+        //              KundeInaktiv->400, UtAvLager->409
+
+        // === Oppgave 3: Hent kunde  ===
+        // TODO: Implementer GET /api/kunder/{id}
+        // Tips: Hent path-parameter med call.parameters["id"]
+        // Returner 404 hvis ikke funnet, 400 for ugyldig id
+
+        // === Ekstra: List alle kunder  ===
+        // TODO: Implementer GET /api/kunder
+        // Tips: Returner liste av KundeDto
+
+        // === Ekstra: Opprett kunde  ===
+        // TODO: Implementer POST /api/kunder
+        // Tips: Returner 201 Created med Location header
     }
 }

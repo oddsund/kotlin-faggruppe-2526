@@ -9,16 +9,15 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.testing.*
+import no.bekk.workshop.domain.Kunde
 import no.bekk.workshop.domain.OrdreValidering
+import no.bekk.workshop.dto.OrdreRequest
 import no.bekk.workshop.dto.ValideringsRespons
 import no.bekk.workshop.plugins.configureRoutingKoin
 import no.bekk.workshop.plugins.configureSerialization
 import no.bekk.workshop.repository.KundeRepository
 import no.bekk.workshop.repository.LagerRepository
-import no.bekk.workshop.testutil.FakeKundeRepository
-import no.bekk.workshop.testutil.FakeLagerRepository
-import no.bekk.workshop.testutil.KundeMother
-import no.bekk.workshop.testutil.OrdreMother
+import no.bekk.workshop.testutil.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.koin.core.context.stopKoin
@@ -45,7 +44,7 @@ class KoinModuleTest {
         val kundeRepository = FakeKundeRepository()
         val lagerRepository = FakeLagerRepository()
 
-        kundeRepository.leggTil(KundeMother.aktivKunde(id = 123))
+        kundeRepository.leggTil(Kunde.gyldig(id = 1))
         lagerRepository.settBeholdning("P1", 10)
 
         val testModule = module {
@@ -67,7 +66,7 @@ class KoinModuleTest {
         // Act
         val response = client.post("/api/ordrer/valider") {
             contentType(ContentType.Application.Json)
-            setBody(OrdreMother.gyldigOrdreRequest())
+            setBody(OrdreRequest.gyldig(kundeId = 1))
         }
 
         // Assert
@@ -77,7 +76,44 @@ class KoinModuleTest {
     }
 
     @Test
-    fun `testModule kan overstyre med fakes for feilsituasjoner`() = testApplication {
+    fun `full app med Koin håndterer gyldig request`() = testApplication {
+        // Arrange
+        val kundeRepository = FakeKundeRepository()
+        val lagerRepository = FakeLagerRepository()
+
+        kundeRepository.leggTil(Kunde.gyldig(id = 1))
+        lagerRepository.settBeholdning("P1", 10)
+
+        val testModule = module {
+            single<KundeRepository> { kundeRepository }
+            single<LagerRepository> { lagerRepository }
+            single { OrdreValidering(get(), get()) }
+        }
+
+        application {
+            installKoin(testModule)
+            configureSerialization()
+            configureRoutingKoin()
+        }
+
+        val client = createClient {
+            install(ContentNegotiation) { json() }
+        }
+
+        // Act
+        val response = client.post("/api/ordrer/valider") {
+            contentType(ContentType.Application.Json)
+            setBody(OrdreRequest.gyldig(kundeId = 1))
+        }
+
+        // Assert
+        response.status shouldBe HttpStatusCode.OK
+        val body = response.body<ValideringsRespons>()
+        body.gyldig shouldBe true
+    }
+
+    @Test
+    fun `full app med Koin håndterer ugyldig kunde`() = testApplication {
         // Arrange - ingen kunde
         val kundeRepository = FakeKundeRepository()
         val lagerRepository = FakeLagerRepository()
@@ -101,7 +137,7 @@ class KoinModuleTest {
         // Act
         val response = client.post("/api/ordrer/valider") {
             contentType(ContentType.Application.Json)
-            setBody(OrdreMother.ordreRequestMedKunde(999))
+            setBody(OrdreRequest.gyldig(kundeId = 999))
         }
 
         // Assert

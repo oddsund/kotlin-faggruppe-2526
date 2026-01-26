@@ -10,14 +10,14 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.testing.*
 import kotlinx.coroutines.test.runTest
 import no.bekk.workshop.AppFactory
+import no.bekk.workshop.domain.Kunde
+import no.bekk.workshop.domain.Ordre
 import no.bekk.workshop.domain.ValideringsResultat
+import no.bekk.workshop.dto.OrdreRequest
 import no.bekk.workshop.dto.ValideringsRespons
 import no.bekk.workshop.plugins.configureRouting
 import no.bekk.workshop.plugins.configureSerialization
-import no.bekk.workshop.testutil.FakeKundeRepository
-import no.bekk.workshop.testutil.FakeLagerRepository
-import no.bekk.workshop.testutil.KundeMother
-import no.bekk.workshop.testutil.OrdreMother
+import no.bekk.workshop.testutil.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -33,30 +33,42 @@ class CompositionRootTest {
     }
 
     @Test
-    fun `createTestApp fungerer med fake repositories`() = runTest {
+    fun `createTestApp returnerer fungerende dependencies`() = runTest {
         // Arrange
-        kundeRepository.leggTil(KundeMother.aktivKunde(id = 123))
+        kundeRepository.leggTil(Kunde.gyldig(id = 1))
         lagerRepository.settBeholdning("P1", 10)
 
         // Act
-        val ordreValidering = AppFactory.createTestApp(kundeRepository, lagerRepository)
-        val resultat = ordreValidering.valider(OrdreMother.gyldigOrdre())
+        val deps = AppFactory.createTestApp(kundeRepository, lagerRepository)
+        val resultat = deps.ordreValidering.valider(Ordre.gyldig(kundeId = 1))
 
         // Assert
         resultat.shouldBeInstanceOf<ValideringsResultat.Gyldig>()
     }
 
     @Test
-    fun `full request gjennom composition root`() = testApplication {
+    fun `createTestApp med manglende kunde gir riktig feil`() = runTest {
+        // Arrange - ingen kunde lagt til
+
+        // Act
+        val deps = AppFactory.createTestApp(kundeRepository, lagerRepository)
+        val resultat = deps.ordreValidering.valider(Ordre.gyldig(kundeId = 999))
+
+        // Assert
+        resultat.shouldBeInstanceOf<ValideringsResultat.Ugyldig.KundeIkkeFunnet>()
+    }
+
+    @Test
+    fun `full app med composition root håndterer gyldig request`() = testApplication {
         // Arrange
-        kundeRepository.leggTil(KundeMother.aktivKunde(id = 123))
+        kundeRepository.leggTil(Kunde.gyldig(id = 1))
         lagerRepository.settBeholdning("P1", 10)
 
-        val ordreValidering = AppFactory.createTestApp(kundeRepository, lagerRepository)
+        val deps = AppFactory.createTestApp(kundeRepository, lagerRepository)
 
         application {
             configureSerialization()
-            configureRouting(ordreValidering)
+            configureRouting(deps.ordreValidering, deps.kundeRepository)
         }
 
         val client = createClient {
@@ -66,7 +78,7 @@ class CompositionRootTest {
         // Act
         val response = client.post("/api/ordrer/valider") {
             contentType(ContentType.Application.Json)
-            setBody(OrdreMother.gyldigOrdreRequest())
+            setBody(OrdreRequest.gyldig(kundeId = 1))
         }
 
         // Assert
@@ -76,16 +88,31 @@ class CompositionRootTest {
     }
 
     @Test
-    fun `composition root kan bytte ut repositories for testing`() = runTest {
+    fun `full app med composition root håndterer ugyldig request`() = testApplication {
         // Arrange - inaktiv kunde
-        kundeRepository.leggTil(KundeMother.inaktivKunde(id = 123))
+        kundeRepository.leggTil(Kunde.inaktiv(id = 1))
         lagerRepository.settBeholdning("P1", 10)
 
+        val deps = AppFactory.createTestApp(kundeRepository, lagerRepository)
+
+        application {
+            configureSerialization()
+            configureRouting(deps.ordreValidering, deps.kundeRepository)
+        }
+
+        val client = createClient {
+            install(ContentNegotiation) { json() }
+        }
+
         // Act
-        val ordreValidering = AppFactory.createTestApp(kundeRepository, lagerRepository)
-        val resultat = ordreValidering.valider(OrdreMother.gyldigOrdre())
+        val response = client.post("/api/ordrer/valider") {
+            contentType(ContentType.Application.Json)
+            setBody(OrdreRequest.gyldig(kundeId = 1))
+        }
 
         // Assert
-        resultat.shouldBeInstanceOf<ValideringsResultat.Ugyldig.KundeInaktiv>()
+        response.status shouldBe HttpStatusCode.BadRequest
+        val body = response.body<ValideringsRespons>()
+        body.gyldig shouldBe false
     }
 }

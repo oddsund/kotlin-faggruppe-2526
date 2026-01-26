@@ -1,27 +1,21 @@
 package no.bekk.workshop.plugins
 
-import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.bekk.workshop.domain.OrdreValidering
-import no.bekk.workshop.domain.ValideringsResultat
-import no.bekk.workshop.dto.OrdreRequest
-import no.bekk.workshop.dto.ValideringsRespons
-import org.koin.ktor.ext.inject
+import no.bekk.workshop.repository.KundeRepository
 
 /**
  * Konfigurerer Ktor routing med Koin DI.
- * OrdreValidering hentes fra Koin med inject().
+ * Dependencies hentes fra Koin med inject().
  */
 fun Application.configureRoutingKoin() {
-    // TODO: Hent OrdreValidering fra Koin med: val ordreValidering by inject<OrdreValidering>()
+    // === Oppgave 5: Inject dependencies fra Koin ===
+    // TODO: Hent OrdreValidering og KundeRepository med inject()
+    // Tips: val ordreValidering by inject<OrdreValidering>()
 
     routing {
-        // TODO: Implementer GET /health som returnerer "OK"
-
-        // TODO: Implementer POST /api/ordrer/valider
-        // Samme logikk som i Routing.kt, men bruk inject() i stedet for parameter
+        // TODO: Implementer samme routes som i Routing.kt
+        // Tips: Bruk de injiserte dependencies
     }
 }

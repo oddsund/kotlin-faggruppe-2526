@@ -1,12 +1,13 @@
 package no.bekk.workshop.repository
 
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import no.bekk.workshop.db.Kunder
 import no.bekk.workshop.domain.Kunde
-import no.bekk.workshop.testutil.KundeMother
+import no.bekk.workshop.testutil.gyldig
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -33,7 +34,7 @@ class KundeRepositoryExposedTest {
     @Test
     fun `hent returnerer kunde når den finnes`() = runTest {
         // Arrange - lagre en kunde først
-        val kunde = KundeMother.aktivKunde(navn = "Test Testesen")
+        val kunde = Kunde.gyldig(navn = "Test Testesen")
         val id = repository.lagre(kunde)
 
         // Act
@@ -68,7 +69,7 @@ class KundeRepositoryExposedTest {
     }
 
     @Test
-    fun `lagre kan lagre flere kunder med ulike ider`() = runTest {
+    fun `lagre flere kunder gir unike ider`() = runTest {
         // Arrange & Act
         val id1 = repository.lagre(Kunde(0, "Kunde 1", true))
         val id2 = repository.lagre(Kunde(0, "Kunde 2", false))
@@ -84,5 +85,53 @@ class KundeRepositoryExposedTest {
         kunde1?.erAktiv shouldBe true
         kunde2?.navn shouldBe "Kunde 2"
         kunde2?.erAktiv shouldBe false
+    }
+
+    @Test
+    fun `oppdater endrer erAktiv og returnerer true`() = runTest {
+        // Arrange
+        val id = repository.lagre(Kunde.gyldig(navn = "Test Kunde", erAktiv = true))
+
+        // Act
+        val resultat = repository.oppdater(id, erAktiv = false)
+
+        // Assert
+        resultat shouldBe true
+        val oppdatert = repository.hent(id)
+        oppdatert?.erAktiv shouldBe false
+    }
+
+    @Test
+    fun `oppdater returnerer false når kunde ikke finnes`() = runTest {
+        // Act
+        val resultat = repository.oppdater(999, erAktiv = false)
+
+        // Assert
+        resultat shouldBe false
+    }
+
+    // === Ekstra-oppgaver ===
+
+    @Test
+    fun `hentAlle returnerer alle kunder`() = runTest {
+        // Arrange
+        repository.lagre(Kunde.gyldig(navn = "Kunde 1"))
+        repository.lagre(Kunde.gyldig(navn = "Kunde 2"))
+        repository.lagre(Kunde.gyldig(navn = "Kunde 3"))
+
+        // Act
+        val alle = repository.hentAlle()
+
+        // Assert
+        alle shouldHaveSize 3
+    }
+
+    @Test
+    fun `hentAlle returnerer tom liste når ingen kunder`() = runTest {
+        // Act
+        val alle = repository.hentAlle()
+
+        // Assert
+        alle shouldHaveSize 0
     }
 }

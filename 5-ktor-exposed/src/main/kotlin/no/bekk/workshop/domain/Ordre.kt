@@ -5,4 +5,6 @@ data class Ordre(
     val varer: List<OrdreVare>
 ) {
     fun totalBeløp(): Double = varer.sumOf { it.totalPris() }
+
+    companion object
 }

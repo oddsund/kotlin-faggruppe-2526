@@ -6,4 +6,6 @@ data class OrdreVare(
     val pris: Double
 ) {
     fun totalPris(): Double = antall * pris
+
+    companion object
 }

@@ -7,16 +7,30 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 
 class LagerRepositoryExposed(private val database: Database) : LagerRepository {
 
-    override suspend fun hentBeholdning(produktId: String): Int = newSuspendedTransaction(Dispatchers.IO, database) {
-        // TODO: Implementer henting av beholdning fra databasen
-        // Bruk: Lager.selectAll().where { Lager.produktId eq produktId }.singleOrNull()
-        // Returner antall eller 0 hvis ikke funnet
-        TODO("Implementer hentBeholdning(produktId) - returner antall eller 0")
+    private suspend fun <T> dbQuery(block: suspend () -> T): T =
+        newSuspendedTransaction(Dispatchers.IO, database) { block() }
+
+    override suspend fun hentBeholdning(produktId: String): Int = dbQuery {
+        // TODO: Hent beholdning for produktet, returner 0 hvis ikke funnet
+        // Tips: Bruk select med where-clause
+        TODO("Implementer hentBeholdning")
     }
 
-    override suspend fun oppdaterBeholdning(produktId: String, antall: Int): Unit = newSuspendedTransaction(Dispatchers.IO, database) {
-        // TODO: Implementer oppdatering/innsetting av beholdning
-        // Sjekk om produktet finnes, hvis ja: update, hvis nei: insert
-        TODO("Implementer oppdaterBeholdning(produktId, antall)")
+    override suspend fun leggTil(produktId: String, antall: Int): Unit = dbQuery {
+        // TODO: Legg til eller oppdater beholdning (upsert)
+        // Tips: Sjekk om produktet finnes først, deretter insert eller update
+        TODO("Implementer leggTil")
+    }
+
+    override suspend fun reduserBeholdning(produktId: String, antall: Int): Int = dbQuery {
+        // TODO: Reduser beholdning og returner ny beholdning
+        // Tips: Hent nåværende beholdning, trekk fra, oppdater, returner
+        TODO("Implementer reduserBeholdning")
+    }
+
+    override suspend fun slettProdukt(produktId: String): Boolean = dbQuery {
+        // TODO (Ekstra): Slett produkt fra lager, returner true hvis slettet
+        // Tips: deleteWhere returnerer antall slettede rader
+        TODO("Implementer slettProdukt")
     }
 }

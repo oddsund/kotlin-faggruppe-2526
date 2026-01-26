@@ -27,9 +27,9 @@ class LagerRepositoryExposedTest {
     }
 
     @Test
-    fun `hentBeholdning returnerer antall når produkt finnes`() = runTest {
+    fun `hentBeholdning returnerer antall på lager`() = runTest {
         // Arrange
-        repository.oppdaterBeholdning("P1", 50)
+        repository.leggTil("P1", 50)
 
         // Act
         val beholdning = repository.hentBeholdning("P1")
@@ -39,7 +39,7 @@ class LagerRepositoryExposedTest {
     }
 
     @Test
-    fun `hentBeholdning returnerer 0 når produkt ikke finnes`() = runTest {
+    fun `hentBeholdning returnerer 0 for ukjent produkt`() = runTest {
         // Act
         val beholdning = repository.hentBeholdning("UKJENT")
 
@@ -48,23 +48,69 @@ class LagerRepositoryExposedTest {
     }
 
     @Test
-    fun `oppdaterBeholdning setter ny beholdning`() = runTest {
+    fun `leggTil oppretter nytt produkt`() = runTest {
         // Act
-        repository.oppdaterBeholdning("P2", 100)
+        repository.leggTil("P2", 100)
 
         // Assert
         repository.hentBeholdning("P2") shouldBe 100
     }
 
     @Test
-    fun `oppdaterBeholdning kan oppdatere eksisterende beholdning`() = runTest {
+    fun `leggTil oppdaterer eksisterende produkt`() = runTest {
         // Arrange
-        repository.oppdaterBeholdning("P3", 10)
+        repository.leggTil("P3", 10)
 
         // Act
-        repository.oppdaterBeholdning("P3", 25)
+        repository.leggTil("P3", 25)
 
         // Assert
         repository.hentBeholdning("P3") shouldBe 25
+    }
+
+    @Test
+    fun `reduserBeholdning trekker fra og returnerer ny beholdning`() = runTest {
+        // Arrange
+        repository.leggTil("P4", 100)
+
+        // Act
+        val nyBeholdning = repository.reduserBeholdning("P4", 30)
+
+        // Assert
+        nyBeholdning shouldBe 70
+        repository.hentBeholdning("P4") shouldBe 70
+    }
+
+    @Test
+    fun `reduserBeholdning returnerer 0 for ukjent produkt`() = runTest {
+        // Act
+        val nyBeholdning = repository.reduserBeholdning("UKJENT", 10)
+
+        // Assert
+        nyBeholdning shouldBe 0
+    }
+
+    // === Ekstra-oppgaver ===
+
+    @Test
+    fun `slettProdukt fjerner produkt fra lager`() = runTest {
+        // Arrange
+        repository.leggTil("P5", 50)
+
+        // Act
+        val slettet = repository.slettProdukt("P5")
+
+        // Assert
+        slettet shouldBe true
+        repository.hentBeholdning("P5") shouldBe 0
+    }
+
+    @Test
+    fun `slettProdukt returnerer false for ukjent produkt`() = runTest {
+        // Act
+        val slettet = repository.slettProdukt("UKJENT")
+
+        // Assert
+        slettet shouldBe false
     }
 }

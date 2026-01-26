@@ -8,17 +8,36 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 
 class KundeRepositoryExposed(private val database: Database) : KundeRepository {
 
-    override suspend fun hent(id: Long): Kunde? = newSuspendedTransaction(Dispatchers.IO, database) {
-        // TODO: Implementer henting av kunde fra databasen
-        // Bruk: Kunder.selectAll().where { Kunder.id eq id }.singleOrNull()
-        // Map ResultRow til Kunde med: row[Kunder.id], row[Kunder.navn], row[Kunder.erAktiv]
-        TODO("Implementer hent(id) - bruk selectAll().where { } og map til Kunde")
+    private suspend fun <T> dbQuery(block: suspend () -> T): T =
+        newSuspendedTransaction(Dispatchers.IO, database) { block() }
+
+    override suspend fun hent(id: Long): Kunde? = dbQuery {
+        // TODO: Hent kunde fra Kunder-tabellen basert på id
+        // Tips: Se på Exposed DSL for select og where
+        TODO("Implementer hent")
     }
 
-    override suspend fun lagre(kunde: Kunde): Long = newSuspendedTransaction(Dispatchers.IO, database) {
-        // TODO: Implementer lagring av kunde til databasen
-        // Bruk: Kunder.insert { it[navn] = kunde.navn; it[erAktiv] = kunde.erAktiv }
-        // Returner generert ID med: [Kunder.id]
-        TODO("Implementer lagre(kunde) - bruk insert { } og returner generert id")
+    override suspend fun hentAlle(): List<Kunde> = dbQuery {
+        // TODO (Ekstra): Hent alle kunder fra tabellen
+        // Tips: selectAll() returnerer alle rader
+        TODO("Implementer hentAlle")
     }
+
+    override suspend fun lagre(kunde: Kunde): Long = dbQuery {
+        // TODO: Sett inn ny kunde og returner generert id
+        // Tips: Se på insert-funksjonen i Exposed
+        TODO("Implementer lagre")
+    }
+
+    override suspend fun oppdater(id: Long, erAktiv: Boolean): Boolean = dbQuery {
+        // TODO: Oppdater erAktiv-feltet for kunde med gitt id
+        // Tips: update returnerer antall rader som ble endret
+        TODO("Implementer oppdater")
+    }
+
+    private fun ResultRow.toKunde() = Kunde(
+        id = this[Kunder.id],
+        navn = this[Kunder.navn],
+        erAktiv = this[Kunder.erAktiv]
+    )
 }

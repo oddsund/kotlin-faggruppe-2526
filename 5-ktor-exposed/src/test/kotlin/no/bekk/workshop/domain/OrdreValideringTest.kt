@@ -3,10 +3,7 @@ package no.bekk.workshop.domain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.test.runTest
-import no.bekk.workshop.testutil.FakeKundeRepository
-import no.bekk.workshop.testutil.FakeLagerRepository
-import no.bekk.workshop.testutil.KundeMother
-import no.bekk.workshop.testutil.OrdreMother
+import no.bekk.workshop.testutil.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -26,10 +23,10 @@ class OrdreValideringTest {
     @Test
     fun `gyldig ordre returnerer Gyldig`() = runTest {
         // Arrange
-        kundeRepository.leggTil(KundeMother.aktivKunde(id = 123))
+        kundeRepository.leggTil(Kunde.gyldig(id = 1))
         lagerRepository.settBeholdning("P1", 10)
 
-        val ordre = OrdreMother.gyldigOrdre()
+        val ordre = Ordre.gyldig(kundeId = 1)
 
         // Act
         val resultat = ordreValidering.valider(ordre)
@@ -41,7 +38,7 @@ class OrdreValideringTest {
     @Test
     fun `ordre under minimum total returnerer TotalForLav`() = runTest {
         // Arrange
-        val ordre = OrdreMother.ordreMedTotal(50.0)
+        val ordre = Ordre.underMinimum()
 
         // Act
         val resultat = ordreValidering.valider(ordre)
@@ -55,7 +52,7 @@ class OrdreValideringTest {
     @Test
     fun `ordre med ukjent kunde returnerer KundeIkkeFunnet`() = runTest {
         // Arrange - ingen kunde lagt til
-        val ordre = OrdreMother.ordreMedKunde(999)
+        val ordre = Ordre.gyldig(kundeId = 999)
 
         // Act
         val resultat = ordreValidering.valider(ordre)
@@ -68,25 +65,25 @@ class OrdreValideringTest {
     @Test
     fun `ordre med inaktiv kunde returnerer KundeInaktiv`() = runTest {
         // Arrange
-        kundeRepository.leggTil(KundeMother.inaktivKunde(id = 123))
+        kundeRepository.leggTil(Kunde.inaktiv(id = 1))
 
-        val ordre = OrdreMother.gyldigOrdre()
+        val ordre = Ordre.gyldig(kundeId = 1)
 
         // Act
         val resultat = ordreValidering.valider(ordre)
 
         // Assert
         resultat.shouldBeInstanceOf<ValideringsResultat.Ugyldig.KundeInaktiv>()
-        resultat.kundeId shouldBe 123
+        resultat.kundeId shouldBe 1
     }
 
     @Test
     fun `ordre med produkt uten lager returnerer UtAvLager`() = runTest {
         // Arrange
-        kundeRepository.leggTil(KundeMother.aktivKunde(id = 123))
+        kundeRepository.leggTil(Kunde.gyldig(id = 1))
         // Ingen lagerbeholdning satt
 
-        val ordre = OrdreMother.ordreMedVarer("P1", "P2")
+        val ordre = Ordre.medProdukter("P1", "P2", kundeId = 1)
 
         // Act
         val resultat = ordreValidering.valider(ordre)
@@ -99,11 +96,11 @@ class OrdreValideringTest {
     @Test
     fun `ordre med noen produkter på lager og noen tom returnerer UtAvLager for det tomme`() = runTest {
         // Arrange
-        kundeRepository.leggTil(KundeMother.aktivKunde(id = 123))
+        kundeRepository.leggTil(Kunde.gyldig(id = 1))
         lagerRepository.settBeholdning("P1", 10)
         // P2 har ingen beholdning
 
-        val ordre = OrdreMother.ordreMedVarer("P1", "P2")
+        val ordre = Ordre.medProdukter("P1", "P2", kundeId = 1)
 
         // Act
         val resultat = ordreValidering.valider(ordre)

@@ -4,7 +4,7 @@ plugins {
     application
 }
 
-val ktorVersion = "2.3.7"
+val ktorVersion = "3.2.0"
 val exposedVersion = "0.45.0"
 val koinVersion = "3.5.3"
 
@@ -14,6 +14,9 @@ dependencies {
     implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktorVersion")
+
+    // Ktor DI (nytt i Ktor 3.2.0+)
+    implementation("io.ktor:ktor-server-di:$ktorVersion")
 
     // Exposed
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")

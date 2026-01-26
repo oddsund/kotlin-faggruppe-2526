@@ -13,6 +13,8 @@ data class OrdreRequest(
         kundeId = kundeId,
         varer = varer.map { it.tilDomene() }
     )
+
+    companion object
 }
 
 @Serializable
@@ -26,4 +28,6 @@ data class OrdreVareDto(
         antall = antall,
         pris = pris
     )
+
+    companion object
 }

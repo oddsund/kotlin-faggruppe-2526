@@ -4,7 +4,9 @@ import no.bekk.workshop.db.Kunder
 import no.bekk.workshop.db.Lager
 import no.bekk.workshop.domain.OrdreValidering
 import no.bekk.workshop.repository.KundeRepository
+import no.bekk.workshop.repository.KundeRepositoryExposed
 import no.bekk.workshop.repository.LagerRepository
+import no.bekk.workshop.repository.LagerRepositoryExposed
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -32,9 +34,12 @@ object AppFactory {
         kundeRepository: KundeRepository,
         lagerRepository: LagerRepository
     ): AppDependencies {
-        // TODO: Opprett OrdreValidering og returner AppDependencies
-        // Tips: OrdreValidering tar kundeRepository og lagerRepository som parametere
-        TODO("Implementer createTestApp")
+        val ordreValidering = OrdreValidering(kundeRepository, lagerRepository)
+        return AppDependencies(
+            kundeRepository = kundeRepository,
+            lagerRepository = lagerRepository,
+            ordreValidering = ordreValidering
+        )
     }
 
     // === Oppgave 2: createProductionApp  ===
@@ -42,9 +47,16 @@ object AppFactory {
      * Oppretter dependencies med ekte database-repositories.
      */
     fun createProductionApp(config: AppConfig = AppConfig()): AppDependencies {
-        // TODO: Opprett database, repositories og OrdreValidering
-        // Tips: Bruk createDatabase() og Exposed repository-implementasjonene
-        TODO("Implementer createProductionApp")
+        val database = createDatabase(config)
+        val kundeRepository = KundeRepositoryExposed(database)
+        val lagerRepository = LagerRepositoryExposed(database)
+        val ordreValidering = OrdreValidering(kundeRepository, lagerRepository)
+
+        return AppDependencies(
+            kundeRepository = kundeRepository,
+            lagerRepository = lagerRepository,
+            ordreValidering = ordreValidering
+        )
     }
 
     /**

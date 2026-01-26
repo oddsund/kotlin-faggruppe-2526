@@ -18,16 +18,10 @@ import org.jetbrains.exposed.sql.Database
  */
 fun Application.configureDependencies(config: AppConfig = AppConfig()) {
     dependencies {
-        // TODO: Registrer Database med provide { }
-        // Tips: Bruk AppFactory.createDatabase(config)
-
-        // TODO: Registrer KundeRepository
-        // Tips: provide<KundeRepository> { KundeRepositoryExposed(resolve()) }
-
-        // TODO: Registrer LagerRepository
-
-        // TODO: Registrer OrdreValidering
-        // Tips: OrdreValidering tar to repositories som parametere
+        provide<Database> { AppFactory.createDatabase(config) }
+        provide<KundeRepository> { KundeRepositoryExposed(resolve()) }
+        provide<LagerRepository> { LagerRepositoryExposed(resolve()) }
+        provide<OrdreValidering> { OrdreValidering(resolve(), resolve()) }
     }
 }
 
@@ -40,7 +34,8 @@ fun Application.configureTestDependencies(
     lagerRepository: LagerRepository
 ) {
     dependencies {
-        // TODO: Registrer fake repositories og OrdreValidering
-        // Tips: provide<Interface> { instans }
+        provide<KundeRepository> { kundeRepository }
+        provide<LagerRepository> { lagerRepository }
+        provide<OrdreValidering> { OrdreValidering(resolve(), resolve()) }
     }
 }

@@ -3,6 +3,7 @@ package no.bekk.workshop.repository
 import kotlinx.coroutines.Dispatchers
 import no.bekk.workshop.db.Lager
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 class LagerRepositoryExposed(private val database: Database) : LagerRepository {
@@ -11,26 +12,42 @@ class LagerRepositoryExposed(private val database: Database) : LagerRepository {
         newSuspendedTransaction(Dispatchers.IO, database) { block() }
 
     override suspend fun hentBeholdning(produktId: String): Int = dbQuery {
-        // TODO: Hent beholdning for produktet, returner 0 hvis ikke funnet
-        // Tips: Bruk select med where-clause
-        TODO("Implementer hentBeholdning")
+        Lager.select(Lager.produktId eq produktId)
+            .map { it[Lager.antall] }
+            .singleOrNull() ?: 0
     }
 
     override suspend fun leggTil(produktId: String, antall: Int): Unit = dbQuery {
-        // TODO: Legg til eller oppdater beholdning (upsert)
-        // Tips: Sjekk om produktet finnes først, deretter insert eller update
-        TODO("Implementer leggTil")
+        val eksisterer = Lager.select(Lager.produktId eq produktId).count() > 0
+
+        if (eksisterer) {
+            Lager.update({ Lager.produktId eq produktId }) {
+                it[Lager.antall] = antall
+            }
+        } else {
+            Lager.insert {
+                it[Lager.produktId] = produktId
+                it[Lager.antall] = antall
+            }
+        }
     }
 
     override suspend fun reduserBeholdning(produktId: String, antall: Int): Int = dbQuery {
-        // TODO: Reduser beholdning og returner ny beholdning
-        // Tips: Hent nåværende beholdning, trekk fra, oppdater, returner
-        TODO("Implementer reduserBeholdning")
+        val nåværende = Lager.select(Lager.produktId eq produktId)
+            .map { it[Lager.antall] }
+            .singleOrNull() ?: return@dbQuery 0
+
+        val nyBeholdning = maxOf(0, nåværende - antall)
+
+        Lager.update({ Lager.produktId eq produktId }) {
+            it[Lager.antall] = nyBeholdning
+        }
+
+        nyBeholdning
     }
 
     override suspend fun slettProdukt(produktId: String): Boolean = dbQuery {
-        // TODO (Ekstra): Slett produkt fra lager, returner true hvis slettet
-        // Tips: deleteWhere returnerer antall slettede rader
-        TODO("Implementer slettProdukt")
+        val slettet = Lager.deleteWhere { Lager.produktId eq produktId }
+        slettet > 0
     }
 }

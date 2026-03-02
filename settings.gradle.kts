@@ -25,6 +25,9 @@ include("4-kotlin-spring-boot-part2")
 // Workshop 5: Ktor + Exposed
 include("5-ktor-exposed")
 
+// Workshop 6: Coroutines
+include("6-coroutines")
+
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
 }

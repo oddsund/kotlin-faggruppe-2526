@@ -28,6 +28,9 @@ include("5-ktor-exposed")
 // Workshop 6: Coroutines
 include("6-coroutines")
 
+// Workshop 7: AI + Koog
+include("7-ai-koog")
+
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
 }

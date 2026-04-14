@@ -1,0 +1,5 @@
+{
+    "messages": [
+        "{\"sammendrag\":\"Kunde får feilmelding 'kunde inaktiv' når de forsøker å bestille produkt P001.\",\"sannsynligÅrsak\":\"Kundens konto er merket som inaktiv i systemet, sannsynligvis på grunn av manglende aktivitet, utløpt betalingsmåte eller gjeldende restanse.\",\"foreslåttHandling\":\"Slå opp kundens konto i CRM-systemet, verifiser aktivitetsstatus og årsak til inaktivering, og reaktiver kontoen eller be kunden oppdatere betalingsinformasjon før ny bestilling kan gjennomføres.\"}"
+    ]
+}

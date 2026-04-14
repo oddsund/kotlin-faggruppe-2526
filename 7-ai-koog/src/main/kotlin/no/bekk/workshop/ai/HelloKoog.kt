@@ -1,8 +1,7 @@
 package no.bekk.workshop.ai
 
 // Koog API reference: docs/koog-0.8-cheatsheet.md
-// This file is a setup checkpoint for participants at the start of the workshop.
-// Running it should print a response from the LLM, proving their environment works.
+// Dette er en enkel fil for å sjekke at api-nøkkelen til workshopen funker
 
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
@@ -17,9 +16,10 @@ fun main() = runBlocking {
 
     val agent = AIAgent(
         promptExecutor = executor,
-        llmModel = AnthropicModels.Haiku_4_5
+        systemPrompt = "Du er en hjelpsom assistent. Svar på norsk.",
+        llmModel = AnthropicModels.Haiku_4_5,
     )
 
-    val response = agent.run("Si hei")
+    val response = agent.run("Si hei til workshop-deltakerne")
     println(response)
 }

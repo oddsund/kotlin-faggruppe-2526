@@ -1,0 +1,5 @@
+{
+    "messages": [
+        "{\"sammendrag\":\"Kunde kan ikke fullføre ordre 12345 fordi det ikke er nok produkter på lager.\",\"sannsynligÅrsak\":\"Lagerstock for en eller flere av varene i ordre 12345 er mindre enn ønsket antall, noe som blokkerer ordregjennomføring.\",\"foreslåttHandling\":\"Logg inn i lagersystemet og sjekk lagerbeholdningen for alle varer i ordre 12345, identifiser hvilken(e) vare(r) som mangler, og informer kunden om leveringstid eller alternativer.\"}"
+    ]
+}
